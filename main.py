@@ -1,78 +1,86 @@
-import json
-import time
+import asyncio
+import sys
 
-# --- STEP 2: THE MAIN BRAIN ---
-def orchestrator_brain(user_request):
+# --- STEP 2: THE MAIN BRAIN (ASYNC) ---
+async def orchestrator_brain(user_request):
     print(f"🤖 [Main Brain] Received task: '{user_request}'")
     print("🧠 [Main Brain] Decomposing task into small pieces...\n")
+    await asyncio.sleep(1) # Simulated network pause
     
     todo_list = [
-        {"step": 1, "agent": "Retriever", "task": f"Gather raw facts about: {user_request}"},
-        {"step": 2, "agent": "Analyzer", "task": "Filter the raw facts and organize them into an outline"},
-        {"step": 3, "agent": "Writer", "task": "Write a beautiful, simple summary from the outline"}
+        {"step": 1, "agent": "Retriever", "task": f"Gather space plant facts for: {user_request}"},
+        {"step": 2, "agent": "Analyzer", "task": "Filter facts and organize them into an outline"},
+        {"step": 3, "agent": "Writer", "task": "Write a beautiful summary"}
     ]
     return todo_list
 
 
-# --- STEP 3: THE EXPERT WORKER ROBOTS ---
+# --- STEP 3 & 4: EXPERT ROBOTS WITH STREAMING PIPELINES ---
 
-def retriever_agent(task_description):
-    print(f"🔍 [Retriever Agent] Starting work on: '{task_description}'")
-    time.sleep(1) # Pretend the robot is searching hard!
-    
-    # The retriever outputs raw data
-    raw_facts = "Fact A: Plants need sunlight for photosynthesis. Fact B: In space, artificial LED lights are used. Fact C: Zero gravity affects how roots grow."
-    print("🔍 [Retriever Agent] Finished gathering raw facts!\n")
+async def retriever_agent(task_description):
+    print(f"🔍 [Retriever Agent] Searching data servers...")
+    await asyncio.sleep(1.5) # Simulated async fetch
+    raw_facts = "Fact A: Artificial LED lights replace sunlight. Fact B: Zero gravity messes with root growth."
+    print("🔍 [Retriever Agent] Raw facts retrieved successfully!\n")
     return raw_facts
 
-def analyzer_agent(raw_data):
-    print(f"📊 [Analyzer Agent] Structuring and filtering data...")
-    time.sleep(1) # Pretend the robot is thinking!
-    
-    # The analyzer takes raw facts and organizes them neatly
-    structured_outline = f"Outline based on data: 1. Core Process (Photosynthesis) -> 2. Space Solution (LED Lights) -> 3. Space Obstacle (Zero Gravity impact on roots)."
-    print("📊 [Analyzer Agent] Finished analyzing and created outline!\n")
+async def analyzer_agent(raw_data):
+    print(f"📊 [Analyzer Agent] Structuring data into an outline...")
+    await asyncio.sleep(1) # Simulated analysis time
+    structured_outline = "Outline: 1. Lighting Solution (LEDs) -> 2. Gravity Problem (Roots)"
+    print("📊 [Analyzer Agent] Outline finalized!\n")
     return structured_outline
 
-def writer_agent(outline):
-    print(f"✍️ [Writer Agent] Crafting the final response from outline...")
-    time.sleep(1) # Pretend the robot is writing beautifully!
+# This agent STREAMS its output piece by piece!
+async def writer_agent(outline):
+    print(f"✍️ [Writer Agent] Initiating live story generation streaming...")
+    await asyncio.sleep(0.5)
     
-    # The writer makes it look pretty for the user
-    final_story = f"🚀 PLANTS IN SPACE SUMMARY 🚀\nGrowing plants in space is highly heavily dependent on technology. Since there is no natural sunlight, scientists use specialized artificial LED lights. The biggest challenge is weightlessness (zero gravity), which changes how plant roots navigate down into the soil."
-    print("✍️ [Writer Agent] Finished writing!\n")
-    return final_story
+    story_chunks = [
+        "\n🚀 ", "PLANTS ", "IN ", "SPACE", " 🚀\n",
+        "Growing ", "crops ", "in ", "orbit ", "is ", "tough. ",
+        "Without ", "natural ", "sunlight, ", "scientists ", "rely ", "on ", "LEDs. ",
+        "Furthermore, ", "zero ", "gravity ", "confuses ", "how ", "roots ", "grow!"
+    ]
+    
+    # yield lets us stream words out one-by-one
+    for chunk in story_chunks:
+        yield chunk
+        await asyncio.sleep(0.2) # This delay simulates the AI typing live!
 
 
-# --- RUNNING THE SYSTEM PIPELINE ---
-if __name__ == "__main__":
-    # 1. The user gives a big task
-    user_job = "Create a report on how plants grow in space"
+# --- STEP 4: THE ASYNC RUNTIME ENGINE ---
+async def main():
+    user_job = "Report on Space Farming"
     
-    # 2. Main Brain chops it up
-    checklist = orchestrator_brain(user_job)
+    # 1. Ask the Brain for a plan
+    checklist = await orchestrator_brain(user_job)
     
-    # We will hold data moving from one agent to the next in this variable
     current_data = ""
     
-    # 3. Handing chores to specific robots manually (No black-box frameworks!)
+    # 2. Run through the pipeline steps
     for step_info in checklist:
         agent_name = step_info["agent"]
         specific_task = step_info["task"]
         
         if agent_name == "Retriever":
-            # Retriever takes the task instruction and gives us raw data
-            current_data = retriever_agent(specific_task)
+            current_data = await retriever_agent(specific_task)
             
         elif agent_name == "Analyzer":
-            # Analyzer takes the raw data and gives us a clean outline
-            current_data = analyzer_agent(current_data)
+            current_data = await analyzer_agent(current_data)
             
         elif agent_name == "Writer":
-            # Writer takes the clean outline and creates the final beautiful output
-            current_data = writer_agent(current_data)
+            print("==================================================")
+            print("🎉 PIPELINE COMPLETE! LIVE STREAMING FINAL OUTPUT:")
+            print("==================================================")
+            
+            # Since the writer streams, we use an async for loop to catch pieces
+            async for word_piece in writer_agent(current_data):
+                # Print each chunk instantly without jumping to a new line
+                sys.stdout.write(word_piece)
+                sys.stdout.flush()
+            print("\n")
 
-    print("==================================================")
-    print("🎉 ALL STEPS COMPLETE! FINAL USER OUTPUT:")
-    print("==================================================")
-    print(current_data)
+if __name__ == "__main__":
+    # Start our async pipeline engine
+    asyncio.run(main())
